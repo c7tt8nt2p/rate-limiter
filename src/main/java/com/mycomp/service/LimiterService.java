@@ -98,6 +98,7 @@ public class LimiterService {
     }
 
     public void lockCityBucket() {
+        logger.info("Locking city bucket...");
         cityBucketLock.set(true);
         TimerTask task = new TimerTask() {
             public void run() {
@@ -109,6 +110,7 @@ public class LimiterService {
     }
 
     public void lockRoomBucket() {
+        logger.info("Locking room bucket...");
         roomBucketLock.set(true);
         TimerTask task = new TimerTask() {
             public void run() {

@@ -43,20 +43,20 @@ public class RootServiceInterceptor implements HandlerInterceptor {
     private boolean preHandleRequest(String uri) {
         logger.info("Incoming request for URI resource: {}", uri);
         if (StringUtils.equals(ServiceURIConstant.CITY, uri)) {
-            return preHandleCityRequest(uri);
+            return preHandleCityRequest();
         } else if (StringUtils.equals(ServiceURIConstant.ROOM, uri)) {
-            return preHandleRoomRequest(uri);
+            return preHandleRoomRequest();
         } else {
             logger.warn("Unknown URI: {}", uri);
             return true;
         }
     }
 
-    private boolean preHandleCityRequest(String uri) {
+    private boolean preHandleCityRequest() {
         Queue<LocalDateTime> cityBucket = limiterService.getCityBucket();
         if (limiterService.getCityBucketLock().get()) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Reject '{}', due to bucket locked", uri);
+                logger.debug("Bucket is locked, request will not be processed");
             }
             return false;
         }
@@ -67,11 +67,11 @@ public class RootServiceInterceptor implements HandlerInterceptor {
         return addAble;
     }
 
-    private boolean preHandleRoomRequest(String uri) {
+    private boolean preHandleRoomRequest() {
         Queue<LocalDateTime> roomBucket = limiterService.getRoomBucket();
         if (limiterService.getRoomBucketLock().get()) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Reject '{}', due to bucket locked", uri);
+                logger.debug("Bucket is locked, request will not be processed");
             }
             return false;
         }
