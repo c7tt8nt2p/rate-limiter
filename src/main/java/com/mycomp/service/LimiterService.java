@@ -1,5 +1,6 @@
 package com.mycomp.service;
 
+import com.mycomp.utils.NumberConversionUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -44,39 +45,42 @@ public class LimiterService {
 
     private void initCityScheduler() {
         if (cityRequestLimit > 0) {
-            logger.info("Init city request limit to {} reqs / 5 seconds", cityRequestLimit);
-            cityBucket = new ArrayBlockingQueue<>(cityRequestLimit);
-            scheduledExecutor.scheduleWithFixedDelay(this::performCityBucketScheduler, 0, 5, TimeUnit.SECONDS);
+            int clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(5) / cityRequestLimit;
+            logger.info("Init city request limit to {} reqs / 5 seconds, will clear 1 req / {} milliseconds", cityRequestLimit, clearRequestInEveryMS);
+            cityBucket = new ArrayBlockingQueue<>(cityRequestLimit, true);
+            scheduledExecutor.scheduleWithFixedDelay(this::performCityBucketScheduler, 0, clearRequestInEveryMS, TimeUnit.MILLISECONDS);
         } else {
-            logger.info("City request limit falls back to {} reqs / 10 seconds", defaultRequestLimit);
-            cityBucket = new ArrayBlockingQueue<>(defaultRequestLimit);
-            scheduledExecutor.scheduleWithFixedDelay(this::performCityBucketScheduler, 0, 10, TimeUnit.SECONDS);
+            int clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(10) / defaultRequestLimit;
+            logger.info("City request limit falls back to {} reqs / 10 seconds, will clear 1 req / {} milliseconds", defaultRequestLimit, clearRequestInEveryMS);
+            cityBucket = new ArrayBlockingQueue<>(defaultRequestLimit, true);
+            scheduledExecutor.scheduleWithFixedDelay(this::performCityBucketScheduler, 0, 10, TimeUnit.MILLISECONDS);
         }
     }
 
     private void initRoomScheduler() {
+        int clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(10) / cityRequestLimit;
         if (roomRequestLimit > 0) {
-            logger.info("Init room request limit to {} reqs / 10 seconds", roomRequestLimit);
+            logger.info("Init room request limit to {} reqs / 10 seconds, will clear 1 req / {} milliseconds", roomRequestLimit, clearRequestInEveryMS);
             roomBucket = new ArrayBlockingQueue<>(roomRequestLimit);
         } else {
-            logger.info("Room request limit falls back to {} reqs / 10 seconds", defaultRequestLimit);
+            logger.info("Room request limit falls back to {} reqs / 10 seconds will clear 1 req / {} milliseconds", defaultRequestLimit, clearRequestInEveryMS);
             roomBucket = new ArrayBlockingQueue<>(defaultRequestLimit);
         }
-        scheduledExecutor.scheduleWithFixedDelay(this::performRoomBucketScheduler, 0, 10, TimeUnit.SECONDS);
+        scheduledExecutor.scheduleWithFixedDelay(this::performRoomBucketScheduler, 0, clearRequestInEveryMS, TimeUnit.MILLISECONDS);
     }
 
     public void performCityBucketScheduler() {
         if (logger.isDebugEnabled()) {
-            logger.debug("Clearing city request queue...");
+            logger.debug("Polling one request from city bucket...");
         }
-        cityBucket.clear();
+        cityBucket.poll();
     }
 
     public void performRoomBucketScheduler() {
         if (logger.isDebugEnabled()) {
-            logger.debug("Clearing room request queue...");
+            logger.debug("Polling one request from room bucket...");
         }
-        roomBucket.clear();
+        roomBucket.poll();
     }
 
 }
