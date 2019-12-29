@@ -28,9 +28,9 @@ public class LimiterService {
     private Queue<LocalDateTime> roomBucket;
     private AtomicBoolean roomBucketLock = new AtomicBoolean(false);
 
-    @Value("${endpoint.city.requests.limit.every.5.seconds:0}")
+    @Value("${endpoint.city.requests.limit.every.5.seconds:-1}")
     private int cityRequestLimit;
-    @Value("${endpoint.room.requests.limit.every.10.seconds:0}")
+    @Value("${endpoint.room.requests.limit.every.10.seconds:-1}")
     private int roomRequestLimit;
     @Value("${endpoint.any.requests.limit.per.10.seconds:50}")
     private int defaultRequestLimit;
