@@ -32,7 +32,9 @@ public class RootServiceInterceptor implements HandlerInterceptor {
         String requestURI = request.getRequestURI();
         boolean canBeProceeded = preHandleRequest(requestURI);
         if (!canBeProceeded) {
-            logger.debug("Reject '{}', due to {}", requestURI, HttpStatus.TOO_MANY_REQUESTS);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Reject '{}', due to {}", requestURI, HttpStatus.TOO_MANY_REQUESTS);
+            }
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
         }
         return canBeProceeded;
@@ -41,22 +43,42 @@ public class RootServiceInterceptor implements HandlerInterceptor {
     private boolean preHandleRequest(String uri) {
         logger.info("Incoming request for URI resource: {}", uri);
         if (StringUtils.equals(ServiceURIConstant.CITY, uri)) {
-            return preHandleCityRequest();
+            return preHandleCityRequest(uri);
         } else if (StringUtils.equals(ServiceURIConstant.ROOM, uri)) {
-            return preHandleRoomRequest();
+            return preHandleRoomRequest(uri);
         } else {
             logger.warn("Unknown URI: {}", uri);
             return true;
         }
     }
 
-    private boolean preHandleCityRequest() {
+    private boolean preHandleCityRequest(String uri) {
         Queue<LocalDateTime> cityBucket = limiterService.getCityBucket();
-        return cityBucket.offer(LocalDateTime.now());
+        if (limiterService.getCityBucketLock().get()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Reject '{}', due to bucket locked", uri);
+            }
+            return false;
+        }
+        boolean addAble = cityBucket.offer(LocalDateTime.now());
+        if (!addAble) {
+            limiterService.lockCityBucket();
+        }
+        return addAble;
     }
 
-    private boolean preHandleRoomRequest() {
+    private boolean preHandleRoomRequest(String uri) {
         Queue<LocalDateTime> roomBucket = limiterService.getRoomBucket();
-        return roomBucket.offer(LocalDateTime.now());
+        if (limiterService.getRoomBucketLock().get()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Reject '{}', due to bucket locked", uri);
+            }
+            return false;
+        }
+        boolean addAble = roomBucket.offer(LocalDateTime.now());
+        if (!addAble) {
+            limiterService.lockRoomBucket();
+        }
+        return addAble;
     }
 }

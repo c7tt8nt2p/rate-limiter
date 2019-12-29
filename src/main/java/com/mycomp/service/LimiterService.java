@@ -8,19 +8,25 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.util.Queue;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @Slf4j
 public class LimiterService {
 
+    private final Timer unlockerTimer = new Timer("Unlokcer timer");
     private ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
 
     private Queue<LocalDateTime> cityBucket;
+    private AtomicBoolean cityBucketLock = new AtomicBoolean(false);
     private Queue<LocalDateTime> roomBucket;
+    private AtomicBoolean roomBucketLock = new AtomicBoolean(false);
 
     @Value("${endpoint.city.requests.limit.every.5.seconds}")
     private int cityRequestLimit;
@@ -70,17 +76,46 @@ public class LimiterService {
     }
 
     public void performCityBucketScheduler() {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Polling one request from city bucket...");
+        if (logger.isTraceEnabled()) {
+            logger.trace("Polling one request from city bucket...");
         }
         cityBucket.poll();
     }
 
     public void performRoomBucketScheduler() {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Polling one request from room bucket...");
+        if (logger.isTraceEnabled()) {
+            logger.trace("Polling one request from room bucket...");
         }
         roomBucket.poll();
     }
 
+    public AtomicBoolean getCityBucketLock() {
+        return cityBucketLock;
+    }
+
+    public AtomicBoolean getRoomBucketLock() {
+        return roomBucketLock;
+    }
+
+    public void lockCityBucket() {
+        cityBucketLock.set(true);
+        TimerTask task = new TimerTask() {
+            public void run() {
+                logger.info("Unlocking city bucket...");
+                cityBucketLock.set(false);
+            }
+        };
+        unlockerTimer.schedule(task, NumberConversionUtils.secondsToMilliseconds(5));
+    }
+
+    public void lockRoomBucket() {
+        roomBucketLock.set(true);
+        TimerTask task = new TimerTask() {
+            public void run() {
+                logger.info("Unlocking room bucket...");
+                roomBucketLock.set(false);
+            }
+        };
+        unlockerTimer.schedule(task, NumberConversionUtils.secondsToMilliseconds(5));
+    }
 }
