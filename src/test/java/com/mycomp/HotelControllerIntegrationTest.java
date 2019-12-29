@@ -76,7 +76,7 @@ public class HotelControllerIntegrationTest {
         waitForCityBucketIsEmptyAndUnlocked();
         waitForRoomBucketIsEmptyAndUnlocked();
         int limit = (cityRequestLimit > 0) ? cityRequestLimit : defaultRequestLimit;
-        for (int i = 1; i <= limit + 5; i++) {
+        for (int i = 1; i <= limit + 2; i++) {
             int finalI = i;
             await().pollDelay(10, TimeUnit.MILLISECONDS).until(() -> {
                 if (finalI > limit) {
@@ -135,7 +135,7 @@ public class HotelControllerIntegrationTest {
         waitForCityBucketIsEmptyAndUnlocked();
         waitForRoomBucketIsEmptyAndUnlocked();
         int limit = (roomRequestLimit > 0) ? roomRequestLimit : defaultRequestLimit;
-        for (int i = 1; i <= limit + 5; i++) {
+        for (int i = 1; i <= limit + 2; i++) {
             int finalI = i;
             await().pollDelay(10, TimeUnit.MILLISECONDS).until(() -> {
                 if (finalI > limit) {
