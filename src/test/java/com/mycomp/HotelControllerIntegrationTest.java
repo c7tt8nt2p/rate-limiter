@@ -40,18 +40,16 @@ public class HotelControllerIntegrationTest {
 
     @Test
     public void testCityApi() throws Exception {
-        waitForCityBucketIsEmptyAndUnlocked();
-        waitForRoomBucketIsEmptyAndUnlocked();
         mvc.perform(get("/api/v1/hotels/city?city=Bangkok"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()", Matchers.equalTo(7)));
+        waitForCityBucketIsEmptyAndUnlocked();
+        waitForRoomBucketIsEmptyAndUnlocked();
     }
 
     @Test
     public void testCityApi_WithPriceSorting() throws Exception {
-        waitForCityBucketIsEmptyAndUnlocked();
-        waitForRoomBucketIsEmptyAndUnlocked();
         mvc.perform(get("/api/v1/hotels/city?city=Bangkok&priceSorting=ASC"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -69,16 +67,16 @@ public class HotelControllerIntegrationTest {
                 .andExpect(jsonPath("$[0].PRICE", Matchers.equalTo(25000.0)))
                 .andExpect(jsonPath("$[6].HOTELID", Matchers.equalTo(11)))
                 .andExpect(jsonPath("$[6].PRICE", Matchers.equalTo(60.0)));
+        waitForCityBucketIsEmptyAndUnlocked();
+        waitForRoomBucketIsEmptyAndUnlocked();
     }
 
     @Test
     public void testCityApi_RateLimiter() throws Exception {
-        waitForCityBucketIsEmptyAndUnlocked();
-        waitForRoomBucketIsEmptyAndUnlocked();
         int limit = (cityRequestLimit > 0) ? cityRequestLimit : defaultRequestLimit;
         for (int i = 1; i <= limit + 2; i++) {
             int finalI = i;
-            await().pollDelay(10, TimeUnit.MILLISECONDS).until(() -> {
+            await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> {
                 if (finalI > limit) {
                     mvc.perform(get("/api/v1/hotels/city?city=Bangkok"))
                             .andExpect(status().isTooManyRequests());
@@ -95,22 +93,22 @@ public class HotelControllerIntegrationTest {
                 return true;
             });
         }
+        waitForCityBucketIsEmptyAndUnlocked();
+        waitForRoomBucketIsEmptyAndUnlocked();
     }
 
     @Test
     public void testRoomApi() throws Exception {
-        waitForCityBucketIsEmptyAndUnlocked();
-        waitForRoomBucketIsEmptyAndUnlocked();
         mvc.perform(get("/api/v1/hotels/room?room=Superior"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()", Matchers.equalTo(9)));
+        waitForCityBucketIsEmptyAndUnlocked();
+        waitForRoomBucketIsEmptyAndUnlocked();
     }
 
     @Test
     public void testRoomApi_WithPriceSorting() throws Exception {
-        waitForCityBucketIsEmptyAndUnlocked();
-        waitForRoomBucketIsEmptyAndUnlocked();
         mvc.perform(get("/api/v1/hotels/room?room=Superior&priceSorting=ASC"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -128,16 +126,17 @@ public class HotelControllerIntegrationTest {
                 .andExpect(jsonPath("$[0].PRICE", Matchers.equalTo(4444.0)))
                 .andExpect(jsonPath("$[8].HOTELID", Matchers.equalTo(16)))
                 .andExpect(jsonPath("$[8].PRICE", Matchers.equalTo(800.0)));
+
+        waitForCityBucketIsEmptyAndUnlocked();
+        waitForRoomBucketIsEmptyAndUnlocked();
     }
 
     @Test
     public void testRoomApi_RateLimiter() throws Exception {
-        waitForCityBucketIsEmptyAndUnlocked();
-        waitForRoomBucketIsEmptyAndUnlocked();
         int limit = (roomRequestLimit > 0) ? roomRequestLimit : defaultRequestLimit;
         for (int i = 1; i <= limit + 2; i++) {
             int finalI = i;
-            await().pollDelay(10, TimeUnit.MILLISECONDS).until(() -> {
+            await().pollDelay(1, TimeUnit.MILLISECONDS).until(() -> {
                 if (finalI > limit) {
                     mvc.perform(get("/api/v1/hotels/room?room=Superior"))
                             .andExpect(status().isTooManyRequests());
@@ -154,13 +153,19 @@ public class HotelControllerIntegrationTest {
                 return true;
             });
         }
+        waitForCityBucketIsEmptyAndUnlocked();
+        waitForRoomBucketIsEmptyAndUnlocked();
     }
 
     private void waitForCityBucketIsEmptyAndUnlocked() {
-        await().atMost(5 * 2, TimeUnit.SECONDS).until(() -> !limiterService.getCityBucketLock().get() && limiterService.getCityBucket().isEmpty());
+        System.out.println("waitForCityBucketIsEmptyAndUnlocked");
+        int limit = (cityRequestLimit > 0) ? cityRequestLimit : defaultRequestLimit;
+        await().atMost(5 * limit, TimeUnit.SECONDS).until(() -> !limiterService.getCityBucketLock().get() && limiterService.getCityBucket().isEmpty());
     }
 
     private void waitForRoomBucketIsEmptyAndUnlocked() {
-        await().atMost(10 * 2, TimeUnit.SECONDS).until(() -> !limiterService.getRoomBucketLock().get() && limiterService.getRoomBucket().isEmpty());
+        System.out.println("waitForRoomBucketIsEmptyAndUnlocked");
+        int limit = (roomRequestLimit > 0) ? roomRequestLimit : defaultRequestLimit;
+        await().atMost(10 * limit, TimeUnit.SECONDS).until(() -> !limiterService.getRoomBucketLock().get() && limiterService.getRoomBucket().isEmpty());
     }
 }

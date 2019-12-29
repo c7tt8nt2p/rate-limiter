@@ -74,20 +74,26 @@ public class LimiterService {
             clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(10) / defaultRequestLimit;
             logger.info("Room request limit falls back to {} reqs / 10 seconds will clear 1 req / {} milliseconds", defaultRequestLimit, clearRequestInEveryMS);
             roomBucket = new ArrayBlockingQueue<>(defaultRequestLimit);
-            scheduledExecutor.scheduleWithFixedDelay(this::performRoomBucketScheduler, 0, clearRequestInEveryMS, TimeUnit.MILLISECONDS);
         }
+        scheduledExecutor.scheduleWithFixedDelay(this::performRoomBucketScheduler, 0, clearRequestInEveryMS, TimeUnit.MILLISECONDS);
     }
 
     public void performCityBucketScheduler() {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Polling one request from city bucket...");
+        if (cityBucket.isEmpty()) {
+            return;
+        }
+        if (logger.isDebugEnabled()) {
+            logger.debug("Polling one request from city bucket... current is {}", cityBucket.size());
         }
         cityBucket.poll();
     }
 
     public void performRoomBucketScheduler() {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Polling one request from room bucket...");
+        if (roomBucket.isEmpty()) {
+            return;
+        }
+        if (logger.isDebugEnabled()) {
+            logger.debug("Polling one request from room bucket... current is {}", roomBucket.size());
         }
         roomBucket.poll();
     }
