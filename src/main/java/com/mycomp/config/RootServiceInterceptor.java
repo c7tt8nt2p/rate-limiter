@@ -38,21 +38,6 @@ public class RootServiceInterceptor implements HandlerInterceptor {
         return canBeProceeded;
     }
 
-//    @Override
-//    public void postHandle(
-//            HttpServletRequest request,
-//            HttpServletResponse response,
-//            Object handler,
-//            ModelAndView modelAndView) {
-//    }
-//
-//    @Override
-//    public void afterCompletion(HttpServletRequest request,
-//                                HttpServletResponse response,
-//                                Object handler,
-//                                Exception exception) {
-//    }
-
     private boolean preHandleRequest(String uri) {
         logger.info("Incoming request for URI resource: {}", uri);
         if (StringUtils.equals(ServiceURIConstant.CITY, uri)) {
