@@ -28,9 +28,9 @@ public class LimiterService {
     private Queue<LocalDateTime> roomBucket;
     private AtomicBoolean roomBucketLock = new AtomicBoolean(false);
 
-    @Value("${endpoint.city.requests.limit.every.5.seconds}")
+    @Value("${endpoint.city.requests.limit.every.5.seconds:0}")
     private int cityRequestLimit;
-    @Value("${endpoint.room.requests.limit.every.10.seconds}")
+    @Value("${endpoint.room.requests.limit.every.10.seconds:0}")
     private int roomRequestLimit;
     @Value("${endpoint.any.requests.limit.per.10.seconds:50}")
     private int defaultRequestLimit;
@@ -50,13 +50,14 @@ public class LimiterService {
     }
 
     private void initCityScheduler() {
+        int clearRequestInEveryMS;
         if (cityRequestLimit > 0) {
-            int clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(5) / cityRequestLimit;
+            clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(5) / cityRequestLimit;
             logger.info("Init city request limit to {} reqs / 5 seconds, will clear 1 req / {} milliseconds", cityRequestLimit, clearRequestInEveryMS);
             cityBucket = new ArrayBlockingQueue<>(cityRequestLimit, true);
             scheduledExecutor.scheduleWithFixedDelay(this::performCityBucketScheduler, 0, clearRequestInEveryMS, TimeUnit.MILLISECONDS);
         } else {
-            int clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(10) / defaultRequestLimit;
+            clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(10) / defaultRequestLimit;
             logger.info("City request limit falls back to {} reqs / 10 seconds, will clear 1 req / {} milliseconds", defaultRequestLimit, clearRequestInEveryMS);
             cityBucket = new ArrayBlockingQueue<>(defaultRequestLimit, true);
             scheduledExecutor.scheduleWithFixedDelay(this::performCityBucketScheduler, 0, 10, TimeUnit.MILLISECONDS);
@@ -64,15 +65,17 @@ public class LimiterService {
     }
 
     private void initRoomScheduler() {
-        int clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(10) / cityRequestLimit;
+        int clearRequestInEveryMS;
         if (roomRequestLimit > 0) {
+            clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(10) / roomRequestLimit;
             logger.info("Init room request limit to {} reqs / 10 seconds, will clear 1 req / {} milliseconds", roomRequestLimit, clearRequestInEveryMS);
             roomBucket = new ArrayBlockingQueue<>(roomRequestLimit);
         } else {
+            clearRequestInEveryMS = NumberConversionUtils.secondsToMilliseconds(10) / defaultRequestLimit;
             logger.info("Room request limit falls back to {} reqs / 10 seconds will clear 1 req / {} milliseconds", defaultRequestLimit, clearRequestInEveryMS);
             roomBucket = new ArrayBlockingQueue<>(defaultRequestLimit);
+            scheduledExecutor.scheduleWithFixedDelay(this::performRoomBucketScheduler, 0, clearRequestInEveryMS, TimeUnit.MILLISECONDS);
         }
-        scheduledExecutor.scheduleWithFixedDelay(this::performRoomBucketScheduler, 0, clearRequestInEveryMS, TimeUnit.MILLISECONDS);
     }
 
     public void performCityBucketScheduler() {
